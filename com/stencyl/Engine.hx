@@ -109,6 +109,11 @@ import com.stencyl.graphics.shaders.Shader;
 
 class Engine 
 {
+	#if (flash || js)
+	public var zoom:Float;
+	private var pastZoom:Float;
+	#end
+	
 	//*-----------------------------------------------
 	//* Constants
 	//*-----------------------------------------------
@@ -2285,7 +2290,7 @@ class Engine
 			//trace("Scene is null");
 			return;
 		}
-		
+
 		//Update Tweens - Synced to engine
 		motion.actuators.SimpleActuator.stage_onEnterFrame(null);
 		
@@ -2877,14 +2882,24 @@ class Engine
 	
 	public function moveCamera(x:Float, y:Float)
 	{
+		#if (flash || js)
+		camera.setLocation(x*Engine.engine.zoom, y*Engine.engine.zoom);
+		#else
 		camera.setLocation(x, y);
-
+		#end
+		
 		cameraX = -Math.abs(camera.realX) + screenWidthHalf;
 		cameraY = -Math.abs(camera.realY) + screenHeightHalf;
+		
 
 		//Position Limiter - Never go past 0 (which would be fully to the right/bottom)
+		#if (flash || js)
+		cameraX = Math.max(cameraX, -sceneWidth*Engine.engine.zoom + screenWidth);
+		cameraY = Math.max(cameraY, -sceneHeight*Engine.engine.zoom + screenHeight);
+		#else
 		cameraX = Math.max(cameraX, -sceneWidth + screenWidth);
-		cameraY = Math.max(cameraY, -sceneHeight + screenHeight);
+		cameraY = Math.max(cameraY, -sceneHeight + screenHeight);		
+		#end
 
 		cameraX *= SCALE;
 		cameraY *= SCALE;
@@ -2981,6 +2996,12 @@ class Engine
      //Change to a repaint on demand mechanism
      public function draw()
      {
+
+	#if (flash || js)
+	var multiplier = Engine.engine.zoom;
+	pastZoom = multiplier;		
+	#end
+
      	for(l in interactiveLayers)
 		{
 			l.overlay.graphics.clear();
@@ -3050,11 +3071,21 @@ class Engine
      	//Only if camera changed? Or tile updated
      	for(layer in interactiveLayers)
 	    {
-	    	if(layer.cameraMoved || tileUpdated)
+
+		#if (flash || js)
+		layer.tiles.draw(Std.int(cameraX * layer.scrollFactorX), Std.int(cameraY * layer.scrollFactorY));
+		layer.cameraMoved = false;
+		var multiplier = Engine.engine.zoom;
+		pastZoom = multiplier;
+		#else
+		if(layer.cameraMoved || tileUpdated || pastZoom != Engine.engine.zoom)
      		{
-	     		layer.tiles.draw(Std.int(cameraX * layer.scrollFactorX), Std.int(cameraY * layer.scrollFactorY));
+			layer.tiles.draw(Std.int(cameraX * layer.scrollFactorX), Std.int(cameraY * layer.scrollFactorY));
 	     		layer.cameraMoved = false;
+			var multiplier = Engine.engine.zoom;
+			pastZoom = multiplier;
 	     	}
+		#end
 	    }
      	
      	tileUpdated = false;
