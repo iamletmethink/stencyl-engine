@@ -33,6 +33,7 @@ class TileLayer extends Sprite
 	public var blendName:String = "NORMAL";
 
 	//Internal/Temporary stuff
+	public var bmp:Bitmap;
 	public var bitmapData:BitmapData;
 	private var pixels:BitmapData;
 	private var flashPoint:Point;
@@ -89,6 +90,7 @@ class TileLayer extends Sprite
 			);
 			
 			var bmp = new Bitmap(bitmapData);
+			this.bmp = bmp;
 			bmp.smoothing = scripts.MyAssets.antialias;
 			addChild(bmp);
 		}
@@ -281,6 +283,31 @@ class TileLayer extends Sprite
 		{
 			return;
 		}
+
+		#if (flash || js)
+		var multiplier = 1/Engine.engine.zoom;
+		var zoom = Engine.engine.zoom;
+		#else
+		var multiplier = 1;
+		var zoom = 1;
+		#end
+		
+		#if (flash || js)
+		removeChild(this.bmp);
+		bitmapData.dispose();
+		bitmapData = new BitmapData
+		(
+			Std.int((Engine.screenWidth * Math.ceil(multiplier) * Engine.SCALE) + (scene.tileWidth * Math.ceil(multiplier) * Engine.SCALE )), 
+			Std.int((Engine.screenHeight * Math.ceil(multiplier) * Engine.SCALE) + (scene.tileHeight * Math.ceil(multiplier) * Engine.SCALE)), 
+			true, 
+			0
+		);
+		var bmp = new Bitmap(bitmapData);
+		this.bmp = bmp;
+
+		bmp.smoothing = scripts.MyAssets.antialias;
+		addChild(bmp);
+		#end
 		
 		#if (cpp || neko)
 		graphics.clear();
@@ -298,6 +325,7 @@ class TileLayer extends Sprite
 		viewX = Math.floor(Math.abs(viewX));
 		viewY = Math.floor(Math.abs(viewY));
 		
+		
 		var width:Int = numCols;
 		var height:Int = numRows;
 		
@@ -306,11 +334,30 @@ class TileLayer extends Sprite
 		
 		var startX:Int = Std.int(viewX/Engine.SCALE / tw);
 		var startY:Int = Std.int(viewY/Engine.SCALE / th);
-		var endX:Int = 2 + startX + Std.int(Engine.screenWidth / tw);
-		var endY:Int = 2 + startY + Std.int(Engine.screenHeight / th);
+
+		this.x += ((Math.floor((1-zoom) * viewX / tw)) * tw);
+		this.y += ((Math.floor((1-zoom) * viewY / th)) * th);		
 		
+		var endX:Int = 0;
+		var endY:Int = 0;
+		
+		if (zoom > 1)
+		{
+			endX = 2 + startX + Std.int(scripts.MyAssets.stageWidth * multiplier / tw);// + Math.ceil((((1-Engine.engine.zoom) * viewX/Engine.SCALE) + 1) / tw);
+			endY = 2 + startY + Std.int(scripts.MyAssets.stageHeight * multiplier / th);// + Math.ceil((((1-Engine.engine.zoom) * viewY/Engine.SCALE) + 1) / th);
+		} else
+		{
+			endX = 2 + startX + Std.int(scripts.MyAssets.stageWidth * multiplier / tw) + Math.ceil(((1-zoom) * viewX/Engine.SCALE) + 1 / tw);
+			endY = 2 + startY + Std.int(scripts.MyAssets.stageHeight * multiplier / th) + Math.ceil(((1-zoom) * viewY/Engine.SCALE) + 1 / th);		
+		}
+
+		startX +=  Math.floor((1-zoom) * viewX/Engine.SCALE / tw);
+		startY +=  Math.floor((1-zoom) * viewY/Engine.SCALE / th);
+
 		endX = Std.int(Math.min(endX, width));
 		endY = Std.int(Math.min(endY, height));
+		
+		
 		
 		var px:Int = 0;
 		var py:Int = 0;
@@ -373,6 +420,7 @@ class TileLayer extends Sprite
 				
 				#if (flash || js)
 				flashPoint.x = px * Engine.SCALE;
+				
 				flashPoint.y = py * Engine.SCALE;
 				
 				if(pixels != null)
@@ -420,11 +468,11 @@ class TileLayer extends Sprite
 				x++;
 				px += tw;
 			}
-			
 			px = 0;
 			py += th;
 			
 			y++;
-		}		
+		}	
+
 	}
 }
