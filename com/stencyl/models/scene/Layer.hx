@@ -35,6 +35,8 @@ class Layer extends RegularLayer
 	public var cameraOldX:Int = 1;
 	public var cameraOldY:Int = 1;
 	
+	public var pastZoom:Float = 1.0;
+	
 	public function new(ID:Int, name:String, order:Int, scrollFactorX:Float, scrollFactorY:Float, opacity:Float, blendMode:BlendMode, tileLayer:TileLayer)
 	{
 		super(ID, name, order, scrollFactorX, scrollFactorY, opacity, blendMode);
@@ -66,6 +68,17 @@ class Layer extends RegularLayer
 
 	override public function updatePosition(x:Float, y:Float, elapsedTime:Float)
 	{
+		#if (flash || html5)
+		this.width = this.width * pastZoom;
+		this.height = this.height * pastZoom;
+		
+		var multiplier = 1/Engine.engine.zoom;
+		pastZoom = multiplier;
+
+		this.width = this.width * Engine.engine.zoom;
+		this.height = this.height * Engine.engine.zoom;
+		#end
+		
 		x = Std.int(x);
 		y = Std.int(y);
 		var xScrolled = Std.int(x * scrollFactorX);
@@ -73,6 +86,7 @@ class Layer extends RegularLayer
 
 		this.x = xScrolled;
 		this.y = yScrolled;
+		
 		overlay.x = -x;
 		overlay.y = -y;
 		bitmapOverlay.x = -x;
