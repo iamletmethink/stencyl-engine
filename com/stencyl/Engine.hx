@@ -3078,12 +3078,10 @@ class Engine
 		var multiplier = Engine.engine.zoom;
 		pastZoom = multiplier;
 		#else
-		if(layer.cameraMoved || tileUpdated || pastZoom != Engine.engine.zoom)
+		if(layer.cameraMoved || tileUpdated)
      		{
 			layer.tiles.draw(Std.int(cameraX * layer.scrollFactorX), Std.int(cameraY * layer.scrollFactorY));
 	     		layer.cameraMoved = false;
-			var multiplier = Engine.engine.zoom;
-			pastZoom = multiplier;
 	     	}
 		#end
 	    }
