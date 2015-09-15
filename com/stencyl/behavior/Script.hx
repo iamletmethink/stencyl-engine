@@ -4589,5 +4589,14 @@ class Script
 		return cm.getFilter();
 	}
 		
-	#end	
+	#end
+	
+	public static function setZoom(z:Float)
+	{
+		Engine.engine.zoom = z;
+		if (Engine.screenWidth/Engine.engine.zoom > Engine.sceneWidth)
+		{
+			Engine.engine.zoom = Engine.screenWidth/Engine.sceneWidth;
+		}	
+	}
 }
