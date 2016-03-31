@@ -33,7 +33,6 @@ class TileLayer extends Sprite
 	public var blendName:String = "NORMAL";
 
 	//Internal/Temporary stuff
-	public var bmp:Bitmap;
 	public var bitmapData:BitmapData;
 	private var pixels:BitmapData;
 	private var flashPoint:Point;
@@ -41,6 +40,8 @@ class TileLayer extends Sprite
 	
 	private static var TILESET_CACHE_MULTIPLIER = 1000000;
 	private static var cacheSource = new Map<Int,Rectangle>();
+	
+	private var tilesets:Array<Tileset> = new Array();
 	
 	public function new(layerID:Int, zOrder:Int, scene:Scene, numCols:Int, numRows:Int)
 	{
@@ -53,6 +54,7 @@ class TileLayer extends Sprite
 		this.numRows = numRows;
 		this.numCols = numCols;
 		this.noTiles = true;
+		trace(this.noTiles);
 
 		rows = [];
 		autotileData = [];
@@ -70,6 +72,7 @@ class TileLayer extends Sprite
 		}
 		
 		flashPoint = new Point();
+	
 	}
 	
 	public function reset()
@@ -83,14 +86,13 @@ class TileLayer extends Sprite
 		{
 			bitmapData = new BitmapData
 			(
-				Std.int((Engine.screenWidth * Engine.SCALE) + (scene.tileWidth * Engine.SCALE)), 
-				Std.int((Engine.screenHeight * Engine.SCALE) + (scene.tileHeight * Engine.SCALE)), 
+				Std.int((Engine.sceneWidth * Engine.SCALE) + (scene.tileWidth * Engine.SCALE)), 
+				Std.int((Engine.sceneHeight * Engine.SCALE) + (scene.tileHeight * Engine.SCALE)), 
 				true, 
 				0
 			);
 			
 			var bmp = new Bitmap(bitmapData);
-			this.bmp = bmp;
 			bmp.smoothing = scripts.MyAssets.antialias;
 			addChild(bmp);
 		}
@@ -175,7 +177,6 @@ class TileLayer extends Sprite
 		{
 			return;
 		}
-		
 		if(noTiles && tile != null)
 		{
 			noTiles = false;
@@ -283,31 +284,6 @@ class TileLayer extends Sprite
 		{
 			return;
 		}
-
-		#if (flash || js)
-		var multiplier = 1/Engine.engine.zoom;
-		var zoom = Engine.engine.zoom;
-		#else
-		var multiplier = 1;
-		var zoom = 1;
-		#end
-		
-		#if (flash || js)
-		removeChild(this.bmp);
-		bitmapData.dispose();
-		bitmapData = new BitmapData
-		(
-			Std.int((Engine.screenWidth * Math.ceil(multiplier) * Engine.SCALE) + (scene.tileWidth * Math.ceil(multiplier) * Engine.SCALE )), 
-			Std.int((Engine.screenHeight * Math.ceil(multiplier) * Engine.SCALE) + (scene.tileHeight * Math.ceil(multiplier) * Engine.SCALE)), 
-			true, 
-			0
-		);
-		var bmp = new Bitmap(bitmapData);
-		this.bmp = bmp;
-
-		bmp.smoothing = scripts.MyAssets.antialias;
-		addChild(bmp);
-		#end
 		
 		#if (cpp || neko)
 		graphics.clear();
@@ -316,7 +292,13 @@ class TileLayer extends Sprite
 		#if (!cpp && !neko)
 		if(bitmapData == null)
 		{
-			return;
+			bitmapData = new BitmapData
+			(
+				Std.int((Engine.screenWidth * Engine.SCALE) + (scene.tileWidth * Engine.SCALE)), 
+				Std.int((Engine.screenHeight * Engine.SCALE) + (scene.tileHeight * Engine.SCALE)), 
+				true, 
+				0
+			);
 		}
 		
 		bitmapData.fillRect(bitmapData.rect, 0);
@@ -324,7 +306,6 @@ class TileLayer extends Sprite
 		
 		viewX = Math.floor(Math.abs(viewX));
 		viewY = Math.floor(Math.abs(viewY));
-		
 		
 		var width:Int = numCols;
 		var height:Int = numRows;
@@ -334,30 +315,11 @@ class TileLayer extends Sprite
 		
 		var startX:Int = Std.int(viewX/Engine.SCALE / tw);
 		var startY:Int = Std.int(viewY/Engine.SCALE / th);
-
-		this.x += ((Math.floor((1-zoom) * viewX / tw)) * tw);
-		this.y += ((Math.floor((1-zoom) * viewY / th)) * th);		
+		var endX:Int = numCols; //2 + startX + Std.int(Engine.screenWidth / tw);
+		var endY:Int = numRows; //2 + startY + Std.int(Engine.screenHeight / th);
 		
-		var endX:Int = 0;
-		var endY:Int = 0;
-		
-		if (zoom > 1)
-		{
-			endX = 2 + startX + Std.int(scripts.MyAssets.stageWidth * multiplier / tw);// + Math.ceil((((1-Engine.engine.zoom) * viewX/Engine.SCALE) + 1) / tw);
-			endY = 2 + startY + Std.int(scripts.MyAssets.stageHeight * multiplier / th);// + Math.ceil((((1-Engine.engine.zoom) * viewY/Engine.SCALE) + 1) / th);
-		} else
-		{
-			endX = 2 + startX + Std.int(scripts.MyAssets.stageWidth * multiplier / tw) + Math.ceil(((1-zoom) * viewX/Engine.SCALE) + 1 / tw);
-			endY = 2 + startY + Std.int(scripts.MyAssets.stageHeight * multiplier / th) + Math.ceil(((1-zoom) * viewY/Engine.SCALE) + 1 / th);		
-		}
-
-		startX +=  Math.floor((1-zoom) * viewX/Engine.SCALE / tw);
-		startY +=  Math.floor((1-zoom) * viewY/Engine.SCALE / th);
-
 		endX = Std.int(Math.min(endX, width));
 		endY = Std.int(Math.min(endY, height));
-		
-		
 		
 		var px:Int = 0;
 		var py:Int = 0;
@@ -420,7 +382,6 @@ class TileLayer extends Sprite
 				
 				#if (flash || js)
 				flashPoint.x = px * Engine.SCALE;
-				
 				flashPoint.y = py * Engine.SCALE;
 				
 				if(pixels != null)
@@ -433,29 +394,25 @@ class TileLayer extends Sprite
 				flashPoint.x = x * tw * Engine.SCALE;
 				flashPoint.y = y * th * Engine.SCALE;
 				
-				t.parent.data[0] = flashPoint.x;
-				t.parent.data[1] = flashPoint.y;
+				if (tilesets.indexOf(t.parent) == -1)
+				{
+					tilesets.push(t.parent);
+					t.parent.data = new Array();
+				}
+				
+				t.parent.data.push(flashPoint.x);
+				t.parent.data.push(flashPoint.y);
 				
 				if(t.data == null)
 				{
-					t.parent.data[2] = t.parent.sheetMap.get(t.tileID);
-					
-					if(t.parent.tilesheet != null)
-					{
-						t.parent.tilesheet.drawTiles(graphics, t.parent.data, scripts.MyAssets.antialias, switch(blendName)
-						{
-							case "ADD": Tilesheet.TILE_BLEND_ADD;
-							case "MULTIPLY": Tilesheet.TILE_BLEND_MULTIPLY;
-							case "SCREEN": Tilesheet.TILE_BLEND_SCREEN;
-							default: Tilesheet.TILE_BLEND_NORMAL;	
-						});
-					}
+					t.parent.data.push(t.parent.sheetMap.get(t.tileID));
 				}
 				else
 				{
-					t.parent.data[2] = t.currFrame;
+					t.parent.data.pop();
+					t.parent.data.pop();
 					
-					t.data.drawTiles(graphics, t.parent.data, scripts.MyAssets.antialias, switch(blendName)
+					t.data.drawTiles(graphics, [flashPoint.x, flashPoint.y, t.currFrame], scripts.MyAssets.antialias, switch(blendName)
 					{
 						case "ADD": Tilesheet.TILE_BLEND_ADD;
 						case "MULTIPLY": Tilesheet.TILE_BLEND_MULTIPLY;
@@ -468,11 +425,28 @@ class TileLayer extends Sprite
 				x++;
 				px += tw;
 			}
+			
 			px = 0;
 			py += th;
 			
 			y++;
 		}	
-
+		
+		#if (cpp || neko)
+		for (tileset in tilesets)
+		{
+			if(tileset.tilesheet != null)
+			{
+				tileset.tilesheet.drawTiles(graphics, tileset.data, scripts.MyAssets.antialias, switch(blendName)
+				{
+					case "ADD": Tilesheet.TILE_BLEND_ADD;
+					case "MULTIPLY": Tilesheet.TILE_BLEND_MULTIPLY;
+					case "SCREEN": Tilesheet.TILE_BLEND_SCREEN;
+					default: Tilesheet.TILE_BLEND_NORMAL;	
+				});
+			}
+		}
+		tilesets = new Array();
+		#end
 	}
 }
