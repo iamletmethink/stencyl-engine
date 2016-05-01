@@ -430,32 +430,8 @@ class Engine
 			
 			var screenWidth = Lib.current.stage.stageWidth;
 			var screenHeight = Lib.current.stage.stageHeight;
-			
-			var xml = Xml.parse(openfl.Assets.getText("assets/data/game.xml"));
-			var fast = new haxe.xml.Fast(xml.firstElement());			
-			
-			var scalesEnabled = fast.node.projectScales;
-			#if web
-			var scalesEnabled = fast.node.webScales;
-			#end
-			#if desktop
-			var scalesEnabled = fast.node.desktopScales;
-			#end
-			#if iOS
-			var scalesEnabled = fast.node.iOSScales;
-			#end
-			#if android
-			var scalesEnabled = fast.node.androidScales;
-			#end
 
-			var maxScale = 1.0;
-			var count = 0;
-			var multipliers = [1, 1.5, 2, 3, 4];
-			for (scale in scalesEnabled.nodes.scale)
-			{
-				if (scale.att.enabled == "true") maxScale = multipliers[count];
-				count += 1;
-			}			
+			var maxScale = scripts.MyAssets.maxScale;		
 			
 			root.scaleX = Math.max(1, scripts.MyAssets.gameScale/maxScale);
 			root.scaleY = Math.max(1, scripts.MyAssets.gameScale/maxScale);
