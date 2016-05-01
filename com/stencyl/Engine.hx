@@ -431,8 +431,34 @@ class Engine
 			var screenWidth = Lib.current.stage.stageWidth;
 			var screenHeight = Lib.current.stage.stageHeight;
 			
-			root.scaleX = scripts.MyAssets.gameScale;
-			root.scaleY = scripts.MyAssets.gameScale;
+			var xml = Xml.parse(openfl.Assets.getText("assets/data/game.xml"));
+			var fast = new haxe.xml.Fast(xml.firstElement());			
+			
+			var scalesEnabled = fast.node.projectScales;
+			#if web
+			var scalesEnabled = fast.node.webScales;
+			#end
+			#if desktop
+			var scalesEnabled = fast.node.desktopScales;
+			#end
+			#if iOS
+			var scalesEnabled = fast.node.iOSScales;
+			#end
+			#if android
+			var scalesEnabled = fast.node.androidScales;
+			#end
+
+			var maxScale = 1.0;
+			var count = 0;
+			var multipliers = [1, 1.5, 2, 3, 4];
+			for (scale in scalesEnabled.nodes.scale)
+			{
+				if (scale.att.enabled == "true") maxScale = multipliers[count];
+				count += 1;
+			}			
+			
+			root.scaleX = Math.max(1, scripts.MyAssets.gameScale/maxScale);
+			root.scaleY = Math.max(1, scripts.MyAssets.gameScale/maxScale);
 			root.x = 0.0;
 			root.y = 0.0;
 			
@@ -440,10 +466,21 @@ class Engine
 			screenScaleY = root.scaleY;
 			screenOffsetX = Std.int(root.x);
 			screenOffsetY = Std.int(root.y);
+			
+			if (scripts.MyAssets.scaleToFit3)
+			{
+				trace('hello');
+				trace(engine.root.scrollRect.width);
+				trace(scripts.MyAssets.stageHeight);
+				Engine.screenWidth = Std.int(scripts.MyAssets.stageWidth);
+				Engine.screenWidthHalf = Std.int(Engine.screenWidth / 2);
+				Engine.screenHeight = Std.int(scripts.MyAssets.stageHeight);
+				Engine.screenHeightHalf = Std.int(Engine.screenHeight / 2);
+			}	
 					
 			if(stats != null)
 			{
-				stats.x = Std.int(scripts.MyAssets.stageWidth * scripts.MyAssets.gameScale) - stats.width;
+				stats.x = Std.int(Engine.screenWidth * root.scaleX) - stats.width;
 				stats.y = 0;
 			}
 			
@@ -462,6 +499,14 @@ class Engine
 			root.scaleY = 1;
 			
 			cast(root, Universal).initScreen(true);
+			
+			if (scripts.MyAssets.scaleToFit3)
+			{
+				Engine.screenWidth = Std.int(engine.root.scrollRect.width);
+				Engine.screenWidthHalf = Std.int(Engine.screenWidth / 2);
+				Engine.screenHeight = Std.int(engine.root.scrollRect.height);
+				Engine.screenHeightHalf = Std.int(Engine.screenHeight / 2);
+			}		
 			
 			screenScaleX = root.scaleX;
 			screenScaleY = root.scaleY;
